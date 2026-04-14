@@ -67,3 +67,4 @@ for c in ["名称", "〒", "所属①（部署）", "所属②（課/係）", "�
         show_cols.append(c)
 
 st.dataframe(filtered[show_cols], use_container_width=True, hide_index=True)
+st.write(df.columns.tolist())
