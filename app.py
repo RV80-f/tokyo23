@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="東京23区検索", layout="wide")
+st.set_page_config(page_title="東京23区 DM検索", layout="wide")
 st.title("東京23区 DM検索")
 
 df = pd.read_excel("20260414_東京23区.xlsx")
@@ -19,15 +19,16 @@ df = df.iloc[1:].reset_index(drop=True)
 # 列名の余計な空白除去
 df.columns = df.columns.astype(str).str.strip()
 
-# 先頭に残ったダブり見出し行を除去
+# ダブり見出し行を除去
 if "名称" in df.columns:
     df = df[df["名称"].astype(str).str.strip() != "名称"].copy()
 
 # 自治体名
 df["自治体"] = df["ファイル名"].astype(str).str.extract(r"^\d+_(.+?)_DM")
 
-# 住所列を確実に連結
-addr_cols = [c for c in ["住所1", "住所2", "住所3"] if c in df.columns]
+# 住所列を柔軟に拾う
+addr_cols = [c for c in df.columns if str(c).strip().startswith("住所")]
+
 for c in addr_cols:
     df[c] = df[c].fillna("").astype(str).str.strip()
 
@@ -37,8 +38,8 @@ else:
     df["住所"] = ""
 
 # 検索対象列
-dept_col = "所属①（部署）" if "所属①（部署）" in df.columns else None
-section_col = "所属②（課/係）" if "所属②（課/係）" in df.columns else None
+dept_col = next((c for c in df.columns if "所属①" in str(c)), None)
+section_col = next((c for c in df.columns if "所属②" in str(c)), None)
 
 keyword = st.text_input("部署名で検索")
 city_list = ["全体"] + sorted(df["自治体"].dropna().astype(str).unique().tolist())
@@ -62,9 +63,17 @@ col1.metric("全体件数", len(df))
 col2.metric("検索結果件数", len(filtered))
 
 show_cols = ["自治体"]
-for c in ["名称", "〒", "所属①（部署）", "所属②（課/係）", "住所"]:
+for c in ["名称", "〒"]:
     if c in filtered.columns:
         show_cols.append(c)
+if dept_col:
+    show_cols.append(dept_col)
+if section_col:
+    show_cols.append(section_col)
+show_cols.append("住所")
 
 st.dataframe(filtered[show_cols], use_container_width=True, hide_index=True)
-st.write(df.columns.tolist())
+
+with st.expander("確認用"):
+    st.write("住所列として拾った列:", addr_cols)
+    st.dataframe(df[["自治体", "名称", "住所"]].head(10), use_container_width=True, hide_index=True)
