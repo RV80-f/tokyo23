@@ -1,8 +1,8 @@
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="東京23区 DM検索", layout="wide")
-st.title("東京23区 DM検索")
+st.set_page_config(page_title="東京23区検索", layout="wide")
+st.title("東京23区検索")
 
 # =====================
 # データ読み込み
@@ -25,7 +25,7 @@ df.columns = df.columns.astype(str).str.strip()
 df["自治体"] = df["ファイル名"].astype(str).str.extract(r"^\d+_(.+?)_DM")
 
 # =====================
-# シート分割（重要）
+# シート分割
 # =====================
 header_marker = df["NO"].astype(str).str.strip().eq("NO")
 df["block_no"] = header_marker.groupby(df["ファイル名"]).cumsum()
@@ -59,7 +59,7 @@ section_col = next((c for c in df.columns if "所属②" in str(c)), None)
 # =====================
 sheet_mode = st.selectbox(
     "表示対象",
-    ["両方", "1シート目だけ", "2シート目だけ"],
+    ["両方", "全体（1シート目）", "選別後（2シート目）"],
     index=0
 )
 
@@ -74,9 +74,9 @@ city = st.selectbox("自治体", city_list, index=0)
 filtered = df.copy()
 
 # シート切替
-if sheet_mode == "1シート目だけ":
+if sheet_mode == "全体（1シート目）":
     filtered = filtered[filtered["block_no"] == 1]
-elif sheet_mode == "2シート目だけ":
+elif sheet_mode == "選別後（2シート目）":
     filtered = filtered[filtered["block_no"] == 2]
 
 # 検索
@@ -104,10 +104,10 @@ sheet2_filtered = len(filtered[filtered["block_no"] == 2])
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("全体件数", len(df))
 col2.metric("検索結果件数", len(filtered))
-col3.metric("1シート目", sheet1_count)
-col4.metric("2シート目", sheet2_count)
+col3.metric("全体（元データ）", sheet1_count)
+col4.metric("選別後", sheet2_count)
 
-st.write(f"内訳 → 1シート目: {sheet1_filtered}件 / 2シート目: {sheet2_filtered}件")
+st.write(f"内訳 → 全体: {sheet1_filtered}件 / 選別後: {sheet2_filtered}件")
 
 # =====================
 # 表示
